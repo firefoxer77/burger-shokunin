@@ -101,7 +101,8 @@ window.MOMO_SOUNDS = {
     omegaStep: 1.528,   // 1個ごとの加速（最後のバンズで約 22.4 rad/s）
     bunBoost: 1.45,     // 最後のバンズはさらに速い
     zeroAt: 0.48,       // ずれがバンズ幅のこの割合で 0 点（= 振れ幅の端 120px。端以外は必ず点が入る）
-    perfect: 95,        // この点数以上で「ぴったり」
+    curve: 2,           // 点数の下がり方（1=直線、大きいほど中心付近が厳しい）
+    perfect: 90,        // この点数以上で「ぴったり」（curve 2 で中心から約±6px）
     gravity: 2600,      // 落下加速度 px/s^2
   };
 
@@ -113,7 +114,8 @@ window.MOMO_SOUNDS = {
 
   function scoreFor(dx, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
-    const s = 100 * (1 - Math.abs(dx) / (o.zeroAt * o.bunW));
+    const r = Math.min(1, Math.abs(dx) / (o.zeroAt * o.bunW));
+    const s = 100 * Math.pow(1 - r, o.curve);
     return Math.max(0, Math.min(100, Math.round(s)));
   }
 
