@@ -363,6 +363,7 @@ window.MOMO_SOUNDS = {
   const popups = [], sparkles = [];
   let hitButtons = [];
   let pendingShare = null;
+  let resetNoteUntil = 0;
 
   layout();
 
@@ -406,6 +407,7 @@ window.MOMO_SOUNDS = {
     share(x, y, s) { ctx.lineWidth = s * 0.22; ctx.beginPath(); ctx.moveTo(x - s * 0.6, y - s * 0.05); ctx.lineTo(x - s * 0.6, y + s * 0.85); ctx.lineTo(x + s * 0.6, y + s * 0.85); ctx.lineTo(x + s * 0.6, y - s * 0.05); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y + s * 0.4); ctx.lineTo(x, y - s * 0.9); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - s * 0.4, y - s * 0.5); ctx.lineTo(x, y - s * 0.95); ctx.lineTo(x + s * 0.4, y - s * 0.5); ctx.stroke(); },
     info(x, y, s) { text('i', x, y + 1, { font: 'italic bold ' + (s * 2.9) + 'px ' + SERIF, color: COL.icon }); },
     close(x, y, s) { ctx.lineWidth = s * 0.45; ctx.beginPath(); ctx.moveTo(x - s * 0.7, y - s * 0.7); ctx.lineTo(x + s * 0.7, y + s * 0.7); ctx.moveTo(x + s * 0.7, y - s * 0.7); ctx.lineTo(x - s * 0.7, y + s * 0.7); ctx.stroke(); },
+    reset(x, y, s) { ctx.lineWidth = s * 0.3; ctx.beginPath(); ctx.arc(x, y, s * 0.78, -Math.PI * 0.3, Math.PI * 1.4); ctx.stroke(); const a = -Math.PI * 0.3, ax = x + Math.cos(a) * s * 0.78, ay = y + Math.sin(a) * s * 0.78; ctx.beginPath(); ctx.moveTo(ax + s * 0.1, ay - s * 0.62); ctx.lineTo(ax + s * 0.55, ay + s * 0.12); ctx.lineTo(ax - s * 0.4, ay + s * 0.12); ctx.closePath(); ctx.fill(); },
     arrow(x, y, s) { ctx.beginPath(); ctx.moveTo(x - s * 0.8, y - s * 0.3); ctx.lineTo(x, y - s * 0.3); ctx.lineTo(x, y - s * 0.75); ctx.lineTo(x + s * 0.85, y); ctx.lineTo(x, y + s * 0.75); ctx.lineTo(x, y + s * 0.3); ctx.lineTo(x - s * 0.8, y + s * 0.3); ctx.closePath(); ctx.fill(); },
   };
   function circleButton(x, y, r, draw, id) {
@@ -629,6 +631,12 @@ window.MOMO_SOUNDS = {
     ctx.fillStyle = COL.bg; ctx.fillRect(-20, -20, L.W + 40, L.H + 40);
     hitButtons = [];
     circleButton(LY.cx - 118, L.safeTop + 47, 24, ICON.close, 'back');
+    // デフォルトのレシピに戻す（変更があるときだけ有効）
+    const changed = Store.data.recipe.some((k, i) => k !== Core.DEFAULT_RECIPE[i]);
+    ctx.save(); if (!changed) ctx.globalAlpha = 0.35;
+    circleButton(LY.cx + 118, L.safeTop + 47, 24, ICON.reset, changed ? 'resetRecipe' : 'noop');
+    text('デフォルト', LY.cx + 118, L.safeTop + 82, { font: 'bold 10px ' + SANS, color: '#a5a58f' });
+    ctx.restore();
     const top = L.safeTop + 74, bottom = L.H - L.safeBottom - 62, n = Core.SLOTS;
     const gap = (bottom - top) / (n + 1), w = Math.min(138, gap * 3.2), x = LY.cx;
     Art.draw(ctx, 'bunBottom', x, bottom + 0.19 * w, w);
@@ -643,7 +651,8 @@ window.MOMO_SOUNDS = {
       hitButtons.push({ x, y, w: w * 1.1, h: gap * 0.9, id: 'slot' + i });
     }
     text(Core.calories(Store.data.recipe) + ' kcal', LY.cx - 118, L.H - L.safeBottom - 22, { font: 'bold 13px ' + SANS, color: '#a5a58f', align: 'left' });
-    text('矢印で具を変更', LY.cx + 130, L.H - L.safeBottom - 22, { font: '12px ' + SANS, color: '#a5a58f', align: 'right' });
+    const note = clock < resetNoteUntil ? 'デフォルトに戻しました' : '矢印で具を変更';
+    text(note, LY.cx + 130, L.H - L.safeBottom - 22, { font: '12px ' + SANS, color: '#a5a58f', align: 'right' });
   }
 
   // ---------------------------------------------------------------- シェア画面（ブラウザ用）
@@ -666,8 +675,10 @@ window.MOMO_SOUNDS = {
     return null;
   }
   function act(id) {
-    if (!id) return;
+    if (!id || id === 'noop') return;
     Snd.ui();
+    if (id === 'noop') return;
+    if (id === 'resetRecipe') { Store.data.recipe = Core.DEFAULT_RECIPE.slice(); Store.save(); resetNoteUntil = clock + 1.6; Snd.play('land', 0.9, 0.8); return; }
     if (id === 'start' || id === 'retry') return startPlay();
     if (id === 'end' || id === 'back') { scene = 'title'; sceneT = 0; return; }
     if (id === 'help' || id === 'about' || id === 'ranking' || id === 'custom') { scene = id; sceneT = 0; return; }
