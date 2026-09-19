@@ -115,8 +115,9 @@ window.MOMO_SOUNDS = {
   function scoreFor(dx, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
     const r = Math.min(1, Math.abs(dx) / (o.zeroAt * o.bunW));
+    if (r > 0.995) return 0;                       // 0点は振れ幅の端だけ
     const s = 100 * Math.pow(1 - r, o.curve);
-    return Math.max(0, Math.min(100, Math.round(s)));
+    return Math.max(1, Math.min(100, Math.round(s))); // 端以外は最低1点
   }
 
   function calories(recipe) {
