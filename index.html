@@ -231,11 +231,11 @@ window.MOMO_SOUNDS = {
   function bunTop(g, w) {
     const rx = 0.5 * w, r = rng(7);
     g.beginPath();
-    g.ellipse(0, -0.1 * w, rx, 0.41 * w, 0, Math.PI, TAU);
+    g.ellipse(0, -0.1 * w, rx, 0.3 * w, 0, Math.PI, TAU);
     g.lineTo(rx, -0.07 * w);
     g.ellipse(0, -0.07 * w, rx, 0.085 * w, 0, 0, Math.PI);
     g.closePath();
-    g.fillStyle = rad(g, -0.17 * w, -0.33 * w, 0.02 * w, -0.04 * w, -0.2 * w, 0.62 * w,
+    g.fillStyle = rad(g, -0.17 * w, -0.27 * w, 0.02 * w, -0.04 * w, -0.17 * w, 0.6 * w,
       [[0, '#fbd29a'], [0.32, '#f0b26a'], [0.66, '#d98d42'], [1, '#a9652a']]);
     g.fill();
     g.save(); g.clip();
@@ -250,7 +250,7 @@ window.MOMO_SOUNDS = {
     // ごま
     for (let i = 0; i < 34; i++) {
       const u = (r() * 2 - 1) * 0.86, v = 0.12 + r() * 0.8;
-      const x = u * rx, top = -0.1 * w - 0.41 * w * Math.sqrt(1 - u * u);
+      const x = u * rx, top = -0.1 * w - 0.3 * w * Math.sqrt(1 - u * u);
       const y = top + (-0.13 * w - top) * (1 - v);
       const s = (0.017 + r() * 0.006) * w * (0.55 + 0.45 * v);
       g.save(); g.translate(x, y); g.rotate(r() * TAU);
@@ -736,7 +736,7 @@ window.MOMO_SOUNDS = {
     sunburst(LY.cx, L.safeTop + 130, '#fdfde2', '#f4f4c4', 36, clock * 0.1);
     // バーガー（全体が入る大きさに）
     const areaH = 205, top = L.safeTop + 22;
-    let w = 140; const hh = () => stackHeight(result.placed, w) + 0.43 * w;
+    let w = 140; const hh = () => stackHeight(result.placed, w) + 0.33 * w;
     if (hh() > areaH) w *= areaH / hh();
     const baseY = top + areaH - 0.03 * w;
     drawStack(result.placed, LY.cx, baseY, w, { sway: wobble.th });
@@ -790,7 +790,7 @@ window.MOMO_SOUNDS = {
     hitButtons = [];
     // うっすらバーガー
     const placed = previewPlaced(Store.data.recipe);
-    let w = 142; const h = stackHeight(placed, w) + 0.43 * w; if (h > 178) w *= 178 / h;
+    let w = 142; const h = stackHeight(placed, w) + 0.33 * w; if (h > 178) w *= 178 / h;
     drawStack(placed, LY.cx, L.safeTop + 246, w);
     ctx.fillStyle = 'rgba(255,255,240,0.62)'; ctx.fillRect(-20, L.safeTop + 62, L.W + 40, split - L.safeTop - 62); // うっすら見せる
     drawTopIcons();
