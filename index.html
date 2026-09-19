@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+<title>バーガー職人</title>
+<style>
+html, body {
+  margin: 0; padding: 0; height: 100%; overflow: hidden;
+  background: #fffff0;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  overscroll-behavior: none;
+  font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+}
+#game { display: block; position: fixed; left: 0; top: 0; width: 100%; height: 100%; touch-action: none; }
+#safe-top { position: fixed; top: 0; left: 0; width: 1px; height: env(safe-area-inset-top, 0px); pointer-events: none; visibility: hidden; }
+#safe-bottom { position: fixed; bottom: 0; left: 0; width: 1px; height: env(safe-area-inset-bottom, 0px); pointer-events: none; visibility: hidden; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.overlay[hidden] { display: none; }
+.dialog { background: #fffff4; border-radius: 18px; padding: 20px 22px; width: 260px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+.dialog-title { font-size: 16px; color: #666; text-align: center; margin-bottom: 12px; }
+.dialog-buttons { display: flex; gap: 10px; margin-top: 14px; }
+.dialog-buttons button, .dialog-buttons .button {
+  flex: 1; font-size: 16px; padding: 10px 0; border-radius: 999px; text-align: center; text-decoration: none;
+  border: 2px solid #cfca7a; background: #fff; color: #666; font-family: inherit; box-sizing: border-box; line-height: 1.2;
+}
+.dialog-buttons .primary { background: #b9b356; border-color: #b9b356; color: #fff; }
+#share-text {
+  width: 100%; box-sizing: border-box; font-size: 14px; padding: 8px 10px; resize: none;
+  border: 2px solid #e6e3b0; border-radius: 10px; background: #fff; color: #444; font-family: inherit;
+}
+</style>
+<canvas id="game"></canvas>
+<div id="safe-top"></div>
+<div id="safe-bottom"></div>
+
+<div id="share-dialog" class="overlay" hidden>
+  <div class="dialog">
+    <div class="dialog-title">結果をシェア</div>
+    <textarea id="share-text" rows="3" readonly></textarea>
+    <div class="dialog-buttons">
+      <a id="share-x" class="button primary" href="#" target="_blank" rel="noopener">X に投稿</a>
+      <button id="share-copy" type="button">コピー</button>
+    </div>
+    <div class="dialog-buttons">
+      <button id="share-close" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+<script>
+/* 自動生成: tools/make_sounds.py */
+window.MOMO_SOUNDS = {
+  land: "data:audio/wav;base64,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"
+};
+
+/* バーガー職人 - ゲームロジック（描画非依存・Nodeでテスト可能） */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.BurgerCore = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // 具の定義。thick は積んだときの厚み（バンズ幅=1 に対する比）、kcal はカロリー
+  const KINDS = {
+    ketchup: { label: 'ケチャップ', thick: 0.035, kcal: 15 },
+    patty:   { label: 'ハンバーグ', thick: 0.13,  kcal: 130 },
+    lettuce: { label: 'レタス',     thick: 0.085, kcal: 3 },
+    tomato:  { label: 'トマト',     thick: 0.045, kcal: 2 },
+    cheese:  { label: 'チーズ',     thick: 0.04,  kcal: 60 },
+    mayo:    { label: 'マヨ',       thick: 0.04,  kcal: 80 },
+  };
+  const FILLINGS = ['ketchup', 'patty', 'lettuce', 'tomato', 'cheese', 'mayo'];
+  const BUN = { bottomThick: 0.17, kcal: 160, topLabel: '上のバンズ' };
+  const SLOTS = 9;
+
+  // 既定のレシピ（上から下の順）
+  const DEFAULT_RECIPE = ['ketchup', 'patty', 'lettuce', 'tomato', 'cheese', 'patty', 'mayo', 'lettuce', 'ketchup'];
+
+  const DEFAULTS = {
+    bunW: 250,          // プレイ時のバンズの幅（論理px）
+    swing: 120,         // 左右の振れ幅（中心から）
+    baseOmega: 1.7,     // 最初の具の角速度 rad/s
+    omegaStep: 0.24,    // 1個ごとの加速
+    bunBoost: 1.45,     // 最後のバンズはさらに速い
+    zeroAt: 0.3,        // ずれがバンズ幅のこの割合で 0 点
+    perfect: 95,        // この点数以上で「ぴったり」
+    gravity: 2600,      // 落下加速度 px/s^2
+  };
+
+  function sanitizeRecipe(r) {
+    const out = [];
+    for (let i = 0; i < SLOTS; i++) out.push(r && KINDS[r[i]] ? r[i] : DEFAULT_RECIPE[i]);
+    return out;
+  }
+
+  function scoreFor(dx, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const s = 100 * (1 - Math.abs(dx) / (o.zeroAt * o.bunW));
+    return Math.max(0, Math.min(100, Math.round(s)));
+  }
+
+  function calories(recipe) {
+    return BUN.kcal + recipe.reduce((a, k) => a + KINDS[k].kcal, 0);
+  }
+
+  function createGame(recipeTopDown, opts) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    const rng = o.rng || Math.random;
+    const recipe = sanitizeRecipe(recipeTopDown);
+    // 落とす順番は下から上、最後に上のバンズ
+    const order = recipe.slice().reverse().concat(['bunTop']);
+    const g = {
+      opts: o, recipe, order,
+      index: 0,            // いま動いている具の番号
+      placed: [],          // { kind, dx, score }
+      phase: 0, omega: 0,
+      state: 'swing',      // swing | fall | done
+      fallY: 0, fallV: 0, dropX: 0,
+      total: 0,
+    };
+    function setup() {
+      g.phase = rng() * Math.PI * 2;
+      g.omega = (o.baseOmega + o.omegaStep * g.index) * (g.order[g.index] === 'bunTop' ? o.bunBoost : 1);
+      g.state = 'swing';
+    }
+    g.currentKind = () => g.order[g.index];
+    g.offset = () => Math.sin(g.phase) * o.swing;   // 中心からのずれ
+    g.update = function (dt) {
+      if (g.state === 'swing') g.phase += g.omega * dt;
+    };
+    /** タップ：いまの位置で落とす。戻り値は落とした位置のずれ、または null */
+    g.drop = function () {
+      if (g.state !== 'swing') return null;
+      g.dropX = g.offset();
+      g.state = 'fall';
+      return g.dropX;
+    };
+    /** 着地（描画側が落下アニメの終わりに呼ぶ）。戻り値 { kind, dx, score, perfect, finished } */
+    g.land = function () {
+      if (g.state !== 'fall') return null;
+      const kind = g.currentKind();
+      const score = scoreFor(g.dropX, o);
+      const rec = { kind, dx: g.dropX, score };
+      g.placed.push(rec);
+      g.total += score;
+      g.index++;
+      const finished = g.index >= g.order.length;
+      if (finished) g.state = 'done'; else setup();
+      return Object.assign({ perfect: score >= o.perfect, finished }, rec);
+    };
+    /** 結果の一覧（上から下の順、原作の結果画面と同じ並び） */
+    g.resultRows = function () {
+      return g.placed.slice().reverse().map(p => ({
+        label: p.kind === 'bunTop' ? BUN.topLabel : KINDS[p.kind].label, score: p.score,
+      }));
+    };
+    g.calories = () => calories(recipe);
+    setup();
+    return g;
+  }
+
+  function insertRanking(list, entry, max) {
+    max = max || 10;
+    let idx = list.length;
+    for (let i = 0; i < list.length; i++) if (entry.score > list[i].score) { idx = i; break; }
+    if (idx >= max) return 0;
+    list.splice(idx, 0, entry);
+    if (list.length > max) list.length = max;
+    return idx + 1;
+  }
+
+  return { KINDS, FILLINGS, BUN, SLOTS, DEFAULT_RECIPE, DEFAULTS, sanitizeRecipe, scoreFor, calories, createGame, insertRanking };
+});
+
+/* バーガー職人 - 具の絵（ベクター調をコードで描画してスプライト化） */
+(function () {
+  'use strict';
+  const TAU = Math.PI * 2;
+  const E = 0.17;                 // 見下ろし角による楕円のつぶれ（ry = rx * E）
+  const SPR_W = 1.34, SPR_H = 0.86, ANCHOR_X = 0.67, ANCHOR_Y = 0.64; // スプライト寸法（バンズ幅=1）
+
+  function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  function lin(g, x0, y0, x1, y1, stops) { const gr = g.createLinearGradient(x0, y0, x1, y1); stops.forEach(([t, c]) => gr.addColorStop(t, c)); return gr; }
+  function rad(g, x0, y0, r0, x1, y1, r1, stops) { const gr = g.createRadialGradient(x0, y0, r0, x1, y1, r1); stops.forEach(([t, c]) => gr.addColorStop(t, c)); return gr; }
+
+  // 波打つ輪郭（楕円を基準に半径をゆらす）
+  function blobPath(g, cx, cy, rx, ry, fn, n) {
+    n = n || 180;
+    g.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = i / n * TAU, k = fn(a);
+      const x = cx + Math.cos(a) * rx * k, y = cy + Math.sin(a) * ry * k;
+      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+    g.closePath();
+  }
+
+  // ---- 下のバンズ
+  function bunBottom(g, w) {
+    const rx = 0.5 * w, t = 0.17 * w, ry = rx * E;
+    g.beginPath();
+    g.ellipse(0, -t, rx, ry, 0, Math.PI, TAU);
+    g.lineTo(rx * 0.985, -0.075 * w);
+    g.ellipse(0, -0.075 * w, rx * 0.985, 0.125 * w, 0, 0, Math.PI);
+    g.closePath();
+    g.fillStyle = lin(g, -rx, 0, rx, 0, [[0, '#f3b566'], [0.3, '#eda659'], [0.7, '#cf8640'], [1, '#a9662a']]);
+    g.fill();
+    // 下側の影
+    g.save(); g.clip();
+    g.fillStyle = lin(g, 0, -0.06 * w, 0, 0.06 * w, [[0, 'rgba(120,60,10,0)'], [1, 'rgba(120,60,10,0.35)']]);
+    g.fillRect(-rx, -0.06 * w, w, 0.14 * w);
+    // 側面の帯（焼き色の線）
+    g.strokeStyle = 'rgba(150,80,25,0.55)'; g.lineWidth = 0.008 * w;
+    g.beginPath(); g.ellipse(0, -0.1 * w, rx * 0.995, ry * 1.05, 0, 0.05, Math.PI - 0.05); g.stroke();
+    g.restore();
+    // 上の面
+    g.beginPath(); g.ellipse(0, -t, rx, ry, 0, 0, TAU);
+    g.fillStyle = rad(g, -0.12 * w, -t - 0.01 * w, 0.02 * w, 0, -t, rx, [[0, '#fde3b4'], [0.55, '#f7cb8e'], [1, '#eeb06a']]);
+    g.fill();
+    g.strokeStyle = 'rgba(215,140,70,0.7)'; g.lineWidth = 0.006 * w; g.stroke();
+  }
+
+  // ---- 上のバンズ
+  function bunTop(g, w) {
+    const rx = 0.5 * w, r = rng(7);
+    g.beginPath();
+    g.ellipse(0, -0.1 * w, rx, 0.41 * w, 0, Math.PI, TAU);
+    g.lineTo(rx, -0.07 * w);
+    g.ellipse(0, -0.07 * w, rx, 0.085 * w, 0, 0, Math.PI);
+    g.closePath();
+    g.fillStyle = rad(g, -0.17 * w, -0.33 * w, 0.02 * w, -0.04 * w, -0.2 * w, 0.62 * w,
+      [[0, '#fbd29a'], [0.32, '#f0b26a'], [0.66, '#d98d42'], [1, '#a9652a']]);
+    g.fill();
+    g.save(); g.clip();
+    // 下の縁の帯
+    g.fillStyle = lin(g, -rx, 0, rx, 0, [[0, '#f1ad60'], [0.5, '#e39a4c'], [1, '#a9662a']]);
+    g.beginPath();
+    g.ellipse(0, -0.1 * w, rx * 1.02, 0.075 * w, 0, 0, Math.PI);
+    g.lineTo(-rx * 1.02, 0.05 * w); g.lineTo(rx * 1.02, 0.05 * w); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(160,90,30,0.45)'; g.lineWidth = 0.007 * w;
+    g.beginPath(); g.ellipse(0, -0.1 * w, rx * 1.02, 0.075 * w, 0, 0.02, Math.PI - 0.02); g.stroke();
+    g.restore();
+    // ごま
+    for (let i = 0; i < 34; i++) {
+      const u = (r() * 2 - 1) * 0.86, v = 0.12 + r() * 0.8;
+      const x = u * rx, top = -0.1 * w - 0.41 * w * Math.sqrt(1 - u * u);
+      const y = top + (-0.13 * w - top) * (1 - v);
+      const s = (0.017 + r() * 0.006) * w * (0.55 + 0.45 * v);
+      g.save(); g.translate(x, y); g.rotate(r() * TAU);
+      g.beginPath(); g.moveTo(-s, 0); g.quadraticCurveTo(0, -s * 0.75, s, 0); g.quadraticCurveTo(0, s * 0.75, -s, 0);
+      g.fillStyle = '#fff6df'; g.fill();
+      g.strokeStyle = 'rgba(190,120,50,0.35)'; g.lineWidth = 0.003 * w; g.stroke();
+      g.restore();
+    }
+  }
+
+  // ---- ハンバーグ
+  function patty(g, w) {
+    const rx = 0.47 * w, t = 0.115 * w, ry = rx * E, r = rng(3);
+    const edge = a => 1 + 0.012 * Math.sin(a * 17 + 1) + 0.01 * Math.sin(a * 31);
+    // 側面
+    g.beginPath();
+    g.ellipse(0, -t, rx, ry, 0, Math.PI, TAU);
+    g.lineTo(rx * 0.97, -0.03 * w);
+    g.ellipse(0, -0.045 * w, rx * 0.97, 0.1 * w, 0, 0, Math.PI);
+    g.closePath();
+    g.fillStyle = lin(g, -rx, 0, rx, 0, [[0, '#7d3509'], [0.5, '#6e2c06'], [1, '#55200a']]);
+    g.fill();
+    g.save(); g.clip();
+    for (let i = 0; i < 70; i++) { // 側面のざらつき
+      const a = r() * Math.PI, x = Math.cos(a) * rx * 0.97, y = -0.045 * w + Math.sin(a) * 0.1 * w - r() * 0.07 * w;
+      g.fillStyle = r() < 0.5 ? 'rgba(60,20,2,0.5)' : 'rgba(190,110,40,0.55)';
+      g.beginPath(); g.ellipse(x, y, (0.004 + r() * 0.006) * w, 0.003 * w, 0, 0, TAU); g.fill();
+    }
+    g.restore();
+    // 上の面
+    blobPath(g, 0, -t, rx, ry, edge);
+    g.fillStyle = rad(g, -0.1 * w, -t, 0.02 * w, 0, -t, rx, [[0, '#a3480f'], [0.6, '#8f3b0b'], [1, '#7a3008']]);
+    g.fill();
+    g.save(); g.clip();
+    // 焼き目
+    g.strokeStyle = '#4b1a03'; g.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const y = -t - ry * 0.55 + i * ry * 0.37;
+      g.lineWidth = 0.013 * w;
+      g.beginPath(); g.moveTo(-rx * 0.8, y + 0.012 * w); g.bezierCurveTo(-rx * 0.3, y - 0.004 * w, rx * 0.3, y + 0.016 * w, rx * 0.8, y); g.stroke();
+      g.strokeStyle = 'rgba(200,110,40,0.5)'; g.lineWidth = 0.004 * w;
+      g.beginPath(); g.moveTo(-rx * 0.78, y + 0.024 * w); g.bezierCurveTo(-rx * 0.3, y + 0.008 * w, rx * 0.3, y + 0.028 * w, rx * 0.78, y + 0.012 * w); g.stroke();
+      g.strokeStyle = '#4b1a03';
+    }
+    g.restore();
+    // 縁の明るい粒
+    for (let i = 0; i < 46; i++) {
+      const a = 0.08 + r() * (Math.PI - 0.16);
+      g.fillStyle = 'rgba(214,132,50,0.85)';
+      g.beginPath(); g.ellipse(Math.cos(a) * rx * 0.99, -t + Math.sin(a) * ry * 1.02 + r() * 0.006 * w, (0.004 + r() * 0.007) * w, 0.0035 * w, 0, 0, TAU); g.fill();
+    }
+  }
+
+  // ---- レタス
+  function lettuce(g, w) {
+    const rx = 0.56 * w, ry = 0.125 * w, cy = -0.06 * w, r = rng(11);
+    const frill = a => 1 + 0.07 * Math.sin(a * 13 + 0.4) + 0.05 * Math.sin(a * 29 + 2) + 0.03 * Math.sin(a * 47);
+    // 裏側（青緑の影）
+    blobPath(g, 0.004 * w, cy + 0.03 * w, rx * 0.98, ry * 1.05, a => frill(a + 0.35), 260);
+    g.fillStyle = '#23916f'; g.fill();
+    blobPath(g, 0, cy + 0.016 * w, rx * 0.99, ry * 1.02, a => frill(a + 0.18), 260);
+    g.fillStyle = '#3aa62e'; g.fill();
+    // 表
+    blobPath(g, 0, cy, rx, ry, frill, 260);
+    g.fillStyle = lin(g, 0, cy - ry, 0, cy + ry, [[0, '#6cc92b'], [0.45, '#8edb3c'], [1, '#b6f05e']]);
+    g.fill();
+    g.save(); g.clip();
+    // 葉脈のうねり
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let i = 0; i < 30; i++) {
+      const a = i / 30 * TAU + r() * 0.2;
+      const x1 = Math.cos(a) * rx * 1.02, y1 = cy + Math.sin(a) * ry * 1.02;
+      const x0 = Math.cos(a) * rx * 0.25, y0 = cy + Math.sin(a) * ry * 0.2;
+      const nx = -(y1 - y0), ny = (x1 - x0), nl = Math.hypot(nx, ny) || 1;
+      const amp = (0.012 + r() * 0.012) * w;
+      g.beginPath(); g.moveTo(x0, y0);
+      const seg = 7;
+      for (let s = 1; s <= seg; s++) {
+        const t = s / seg, off = Math.sin(t * Math.PI * 3 + i) * amp * (0.4 + t);
+        g.lineTo(x0 + (x1 - x0) * t + nx / nl * off, y0 + (y1 - y0) * t + ny / nl * off * 0.5);
+      }
+      g.strokeStyle = i % 3 === 0 ? '#2f9a3a' : '#44ad2a'; g.lineWidth = (0.006 + r() * 0.005) * w; g.stroke();
+    }
+    // 中央の明るさ
+    g.fillStyle = rad(g, 0, cy, 0, 0, cy, rx * 0.6, [[0, 'rgba(120,215,50,0.55)'], [1, 'rgba(120,215,50,0)']]);
+    g.fillRect(-rx, cy - ry, rx * 2, ry * 2);
+    g.restore();
+    blobPath(g, 0, cy, rx, ry, frill, 260);
+    g.strokeStyle = '#3aa62e'; g.lineWidth = 0.006 * w; g.stroke();
+  }
+
+  // ---- トマト（輪切り2枚）
+  function tomato(g, w) {
+    for (const [cx, cy, rot] of [[-0.215 * w, -0.035 * w, -0.06], [0.215 * w, -0.05 * w, 0.05]]) {
+      const rx = 0.235 * w, ry = rx * 0.3;
+      g.save(); g.translate(cx, cy); g.rotate(rot);
+      g.beginPath(); g.ellipse(0, 0.014 * w, rx, ry, 0, 0, TAU); g.fillStyle = '#8f0505'; g.fill();
+      g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, TAU); g.fillStyle = '#c40808'; g.fill();
+      g.beginPath(); g.ellipse(0, 0, rx * 0.84, ry * 0.8, 0, 0, TAU); g.fillStyle = '#e2330f'; g.fill();
+      // 種の部屋
+      for (let i = 0; i < 5; i++) {
+        const a = i / 5 * TAU + 0.5;
+        g.save(); g.scale(1, 0.3 / 1); g.rotate(a);
+        g.beginPath(); g.ellipse(rx * 0.47, 0, rx * 0.27, rx * 0.17, 0, 0, TAU);
+        g.fillStyle = '#ef6a1d'; g.fill();
+        g.fillStyle = '#f8c35a';
+        for (let k = 0; k < 4; k++) { g.beginPath(); g.ellipse(rx * (0.33 + k * 0.09), (k % 2 ? 1 : -1) * rx * 0.05, rx * 0.025, rx * 0.04, 0, 0, TAU); g.fill(); }
+        g.restore();
+      }
+      g.beginPath(); g.ellipse(0, 0, rx * 0.1, ry * 0.1, 0, 0, TAU); g.fillStyle = '#c40808'; g.fill();
+      g.restore();
+    }
+  }
+
+  // ---- とろける系（チーズ・ケチャップ・マヨ）共通の輪郭
+  function meltShape(g, w, rx, ry, cy, seed, drips) {
+    const r = rng(seed);
+    const p1 = r() * TAU, p2 = r() * TAU;
+    const f = a => {
+      let k = 1 + 0.035 * Math.sin(a * 5 + p1) + 0.025 * Math.sin(a * 9 + p2);
+      if (Math.sin(a) > 0) k += 0.06 * Math.pow(Math.max(0, Math.sin(a * 6 + p1)), 3) * Math.sin(a); // 下側のたれ
+      return k;
+    };
+    blobPath(g, 0, cy, rx, ry, f, 220);
+    const path = new Path2D();
+    for (let i = 0; i <= 220; i++) { const a = i / 220 * TAU, k = f(a); const x = Math.cos(a) * rx * k, y = cy + Math.sin(a) * ry * k; if (!i) path.moveTo(x, y); else path.lineTo(x, y); }
+    path.closePath();
+    for (const [dx, len, wd] of drips) { // しずく
+      const x = dx * w, y0 = cy + ry * Math.sqrt(Math.max(0, 1 - (x / rx) * (x / rx))) * 0.9;
+      path.moveTo(x - wd * w, y0);
+      path.bezierCurveTo(x - wd * w, y0 + len * w * 0.7, x - wd * w * 0.7, y0 + len * w, x, y0 + len * w);
+      path.bezierCurveTo(x + wd * w * 0.7, y0 + len * w, x + wd * w, y0 + len * w * 0.7, x + wd * w, y0);
+      path.closePath();
+    }
+    return path;
+  }
+
+  function cheese(g, w) {
+    const cy = -0.05 * w;
+    const p = meltShape(g, w, 0.545 * w, 0.115 * w, cy, 21, [[0.12, 0.085, 0.03], [-0.36, 0.04, 0.035], [0.4, 0.035, 0.03]]);
+    g.save(); g.translate(0, 0.012 * w); g.fillStyle = '#e3cf1c'; g.fill(p); g.restore();
+    g.fillStyle = lin(g, -0.55 * w, 0, 0.55 * w, 0, [[0, '#f6ea55'], [0.45, '#f7ec3a'], [1, '#fff600']]); g.fill(p);
+    g.save(); g.clip(p);
+    g.strokeStyle = 'rgba(225,200,20,0.7)'; g.lineWidth = 0.006 * w; // 折れ目
+    g.beginPath(); g.moveTo(-0.06 * w, cy - 0.12 * w); g.quadraticCurveTo(-0.09 * w, cy, -0.04 * w, cy + 0.12 * w); g.stroke();
+    g.strokeStyle = 'rgba(255,255,210,0.9)'; g.lineWidth = 0.007 * w; // 下の縁のつや
+    g.beginPath(); g.ellipse(0, cy - 0.012 * w, 0.5 * w, 0.1 * w, 0, 0.25, Math.PI - 0.6); g.stroke();
+    g.restore();
+  }
+
+  function ketchup(g, w) {
+    const cy = -0.05 * w;
+    const p = meltShape(g, w, 0.5 * w, 0.115 * w, cy, 33, [[-0.3, 0.06, 0.028], [0.26, 0.035, 0.03]]);
+    g.save(); g.translate(0, 0.01 * w); g.fillStyle = '#6d1313'; g.fill(p); g.restore();
+    g.fillStyle = lin(g, -0.5 * w, 0, 0.5 * w, 0, [[0, '#9a2323'], [0.5, '#8e1f1f'], [1, '#7c1919']]); g.fill(p);
+    g.save(); g.clip(p);
+    g.strokeStyle = 'rgba(190,48,48,0.85)'; g.lineCap = 'round'; g.lineWidth = 0.014 * w; // しぼり跡のつや
+    g.beginPath(); g.moveTo(-0.3 * w, cy - 0.01 * w); g.bezierCurveTo(-0.12 * w, cy - 0.07 * w, 0.0, cy + 0.03 * w, 0.14 * w, cy - 0.03 * w); g.stroke();
+    g.lineWidth = 0.01 * w;
+    g.beginPath(); g.moveTo(0.1 * w, cy + 0.04 * w); g.bezierCurveTo(0.22 * w, cy + 0.0, 0.3 * w, cy + 0.06 * w, 0.4 * w, cy + 0.01 * w); g.stroke();
+    g.beginPath(); g.moveTo(-0.4 * w, cy + 0.05 * w); g.quadraticCurveTo(-0.3 * w, cy + 0.08 * w, -0.2 * w, cy + 0.06 * w); g.stroke();
+    g.restore();
+  }
+
+  function mayo(g, w) {
+    const cy = -0.05 * w;
+    const p = meltShape(g, w, 0.5 * w, 0.115 * w, cy, 45, [[0.3, 0.05, 0.03], [-0.18, 0.035, 0.028]]);
+    g.save(); g.translate(0, 0.012 * w); g.fillStyle = '#d9d6ae'; g.fill(p); g.restore();
+    g.fillStyle = lin(g, 0, cy - 0.12 * w, 0, cy + 0.14 * w, [[0, '#fbfae9'], [1, '#efedcb']]); g.fill(p);
+    g.save(); g.clip(p);
+    g.strokeStyle = 'rgba(255,255,255,0.95)'; g.lineCap = 'round'; g.lineWidth = 0.012 * w;
+    g.beginPath(); g.moveTo(-0.32 * w, cy); g.bezierCurveTo(-0.15 * w, cy - 0.06 * w, 0.05 * w, cy + 0.04 * w, 0.3 * w, cy - 0.02 * w); g.stroke();
+    g.strokeStyle = 'rgba(210,205,160,0.7)'; g.lineWidth = 0.006 * w;
+    g.beginPath(); g.ellipse(0, cy - 0.01 * w, 0.46 * w, 0.1 * w, 0, 0.3, Math.PI - 0.3); g.stroke();
+    g.restore();
+  }
+
+  const PAINT = { bunBottom, bunTop, patty, lettuce, tomato, cheese, ketchup, mayo };
+  const cache = {};
+  const REF = 640; // スプライトの基準バンズ幅(px)
+
+  function sprite(kind) {
+    if (cache[kind]) return cache[kind];
+    const c = document.createElement('canvas');
+    c.width = Math.round(REF * SPR_W); c.height = Math.round(REF * SPR_H);
+    const g = c.getContext('2d');
+    g.translate(REF * ANCHOR_X, REF * ANCHOR_Y);
+    PAINT[kind](g, REF);
+    return (cache[kind] = c);
+  }
+
+  /** 接地面の中心を (x, y) に置いて、バンズ幅 w で描く */
+  function draw(ctx, kind, x, y, w, opt) {
+    const s = sprite(kind);
+    opt = opt || {};
+    const sx = opt.scaleX || 1, sy = opt.scaleY || 1;
+    ctx.save();
+    if (opt.alpha !== undefined) ctx.globalAlpha = opt.alpha;
+    ctx.translate(x, y); ctx.scale(sx, sy);
+    ctx.drawImage(s, -w * ANCHOR_X, -w * ANCHOR_Y, w * SPR_W, w * SPR_H);
+    ctx.restore();
+  }
+
+  window.BurgerArt = { draw, sprite, KINDS: Object.keys(PAINT) };
+})();
+
+/* バーガー職人 - 描画・音・画面遷移 */
+(function () {
+  'use strict';
+  const TAU = Math.PI * 2;
+  const Core = window.BurgerCore, Art = window.BurgerArt;
+
+  const SANS = '-apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  const SERIF = '"Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "Noto Serif JP", serif';
+  const ROUND = '"Hiragino Maru Gothic ProN", "Rounded Mplus 1c", "Yu Gothic", "Hiragino Sans", sans-serif';
+  const BUILD = '1.0.0';
+  const COL = { bg: '#fffff0', panel: '#fdfbd4', icon: '#d3ce78', iconEdge: '#ecebb8', iconFill: '#fbf9d2', text: '#6b6b5a' };
+
+  // ---------------------------------------------------------------- canvas
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const safeTopEl = document.getElementById('safe-top'), safeBottomEl = document.getElementById('safe-bottom');
+  const L = { W: 320, H: 568, scale: 1, dpr: 1, offX: 0, safeTop: 0, safeBottom: 0 };
+  const LY = {};
+  function layout() {
+    const iw = window.innerWidth, ih = window.innerHeight;
+    L.dpr = Math.min(window.devicePixelRatio || 1, 3);
+    L.scale = Math.min(iw / 320, ih / 568);
+    L.W = Math.min(iw / L.scale, 480);
+    L.H = ih / L.scale;
+    L.offX = (iw - L.W * L.scale) / 2;
+    L.safeTop = (safeTopEl.getBoundingClientRect().height || 0) / L.scale;
+    L.safeBottom = (safeBottomEl.getBoundingClientRect().height || 0) / L.scale;
+    canvas.width = Math.round(iw * L.dpr); canvas.height = Math.round(ih * L.dpr);
+    canvas.style.width = iw + 'px'; canvas.style.height = ih + 'px';
+    LY.cx = L.W / 2;
+    LY.bunW = Core.DEFAULTS.bunW;
+    LY.baseY = L.H - 92 - L.safeBottom * 0.5;   // 下のバンズの接地位置
+    LY.hoverY = L.safeTop + 128;                // 動いている具の接地面の高さ
+  }
+
+  // ---------------------------------------------------------------- 音
+  const Snd = {
+    ctx: null, master: null, enabled: true, samples: {},
+    init() {
+      if (this.ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC({ latencyHint: 'interactive' });
+      this.master = this.ctx.createGain(); this.master.gain.value = 0.9; this.master.connect(this.ctx.destination);
+      const src = window.BURGER_SOUNDS || window.MOMO_SOUNDS || {};
+      for (const k of Object.keys(src)) {
+        try { // fetch は公開ページで遮断されることがあるので base64 を直接デコード
+          const bin = atob(src[k].slice(src[k].indexOf(',') + 1));
+          const u8 = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          new Promise((res, rej) => this.ctx.decodeAudioData(u8.buffer, res, rej)).then(b => { this.samples[k] = b; }).catch(() => {});
+        } catch (e) { /* noop */ }
+      }
+    },
+    unlock() {
+      this.init(); if (!this.ctx) return;
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const s = this.ctx.createBufferSource(); s.buffer = this.ctx.createBuffer(1, 1, 22050); s.connect(this.ctx.destination); s.start(0);
+    },
+    play(name, rate, vol) {
+      if (!this.enabled || !this.ctx || !this.samples[name]) return;
+      const s = this.ctx.createBufferSource(); s.buffer = this.samples[name]; s.playbackRate.value = rate || 1;
+      const g = this.ctx.createGain(); g.gain.value = vol === undefined ? 1 : vol;
+      s.connect(g); g.connect(this.master); s.start();
+    },
+    // やわらかいベル（少しずらした正弦波2本＋弱い倍音）
+    _bell(t, f, vol, dur) {
+      const c = this.ctx, g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.012); g.gain.setTargetAtTime(0, t + 0.03, dur / 3);
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+      g.connect(lp); lp.connect(this.master);
+      for (const [ratio, det, v] of [[1, -3, 1], [1, 3, 1], [2, 0, 0.22], [3, 0, 0.06]]) {
+        const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = f * ratio; o.detune.value = det;
+        const og = c.createGain(); og.gain.value = v; o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.3);
+      }
+    },
+    perfect() { if (!this.enabled || !this.ctx) return; const t = this.ctx.currentTime + 0.01; this._bell(t, 1318.5, 0.16, 0.5); this._bell(t + 0.07, 1760, 0.13, 0.6); },
+    ui() { if (!this.enabled || !this.ctx) return; this._bell(this.ctx.currentTime + 0.005, 990, 0.07, 0.12); },
+    fanfare(good) {
+      if (!this.enabled || !this.ctx) return;
+      const t0 = this.ctx.currentTime + 0.05;
+      const seq = good
+        ? [[523.25, 0], [659.25, 0.14], [783.99, 0.28], [1046.5, 0.42], [783.99, 0.62], [1046.5, 0.76], [1318.5, 0.9]]
+        : [[523.25, 0], [659.25, 0.16], [783.99, 0.32], [659.25, 0.5], [783.99, 0.66]];
+      seq.forEach(([f, d], i) => this._bell(t0 + d, f, 0.17, i === seq.length - 1 ? 1.4 : 0.55));
+    },
+  };
+
+  // ---------------------------------------------------------------- ネイティブ連携
+  const Native = {
+    plugin(n) { try { return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins[n]; } catch (e) { return null; } },
+    haptic(style) { const h = this.plugin('Haptics'); if (h) { try { h.impact({ style }); } catch (e) { /* noop */ } } },
+    async share(text) {
+      const s = this.plugin('Share');
+      try { if (s) { await s.share({ title: 'バーガー職人', text, dialogTitle: '結果をシェア' }); return; } } catch (e) { return; }
+      if (navigator.share) {
+        try { await navigator.share({ title: 'バーガー職人', text }); return; }
+        catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      openShareDialog(text);
+    },
+  };
+
+  // ---------------------------------------------------------------- 保存
+  const Store = {
+    key: 'burgershokunin.v1',
+    data: { sound: true, recipe: Core.DEFAULT_RECIPE.slice(), high: 0, made: 0, ranking: [] },
+    load() { try { const s = localStorage.getItem(this.key); if (s) Object.assign(this.data, JSON.parse(s)); } catch (e) { /* noop */ } this.data.recipe = Core.sanitizeRecipe(this.data.recipe); if (!Array.isArray(this.data.ranking)) this.data.ranking = []; },
+    save() { try { localStorage.setItem(this.key, JSON.stringify(this.data)); } catch (e) { /* noop */ } },
+  };
+  Store.load();
+  Snd.enabled = Store.data.sound !== false;
+
+  // ---------------------------------------------------------------- 状態
+  let scene = 'title';      // title | help | about | ranking | custom | play | finish | result
+  let sceneT = 0, clock = 0, lastNow = 0;
+  let game = null, result = null;
+  let fall = null;          // 落下中の具 { y, v }
+  let camShift = 0;         // 積み上がりが高くなったら全体を下げる
+  const wobble = { th: 0, om: 0 };
+  const squash = [];        // 着地のつぶれアニメ（placed と同じ添字）
+  const popups = [], sparkles = [];
+  let hitButtons = [];
+  let pendingShare = null;
+
+  layout();
+
+  // ---------------------------------------------------------------- 描画ヘルパ
+  function text(str, x, y, o) {
+    o = o || {};
+    ctx.save();
+    ctx.font = o.font || ('14px ' + SANS); ctx.textAlign = o.align || 'center'; ctx.textBaseline = o.baseline || 'middle';
+    if (o.alpha !== undefined) ctx.globalAlpha = o.alpha;
+    if (o.stroke) { ctx.lineJoin = 'round'; ctx.strokeStyle = o.stroke; ctx.lineWidth = o.strokeW || 4; ctx.strokeText(str, x, y); }
+    ctx.fillStyle = o.color || COL.text; ctx.fillText(str, x, y);
+    ctx.restore();
+  }
+  function menuText(str, x, y, size) {
+    text(str, x, y, { font: 'bold ' + size + 'px ' + ROUND, color: '#fff', stroke: '#a8a8a8', strokeW: size * 0.2 });
+    text(str, x, y, { font: 'bold ' + size + 'px ' + ROUND, color: '#fdfdf6' });
+  }
+  function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  function sunburst(cx, cy, c1, c2, n, rot) {
+    const R = Math.hypot(L.W, L.H) * 1.3;
+    ctx.save(); ctx.fillStyle = c1; ctx.fillRect(-20, -20, L.W + 40, L.H + 40); ctx.fillStyle = c2;
+    for (let i = 0; i < n; i += 2) {
+      const a0 = i / n * TAU + rot, a1 = (i + 1) / n * TAU + rot;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a0) * R, cy + Math.sin(a0) * R); ctx.lineTo(cx + Math.cos(a1) * R, cy + Math.sin(a1) * R); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function iconButton(x, y, s, draw, id) {
+    ctx.save();
+    roundRect(x - s / 2, y - s / 2, s, s, s * 0.17); ctx.fillStyle = COL.iconFill; ctx.fill();
+    ctx.strokeStyle = COL.iconEdge; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = COL.icon; ctx.strokeStyle = COL.icon; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    draw(x, y, s * 0.3);
+    ctx.restore();
+    hitButtons.push({ x, y, w: s + 10, h: s + 10, id });
+  }
+  const ICON = {
+    note(x, y, s) { ctx.lineWidth = s * 0.22; ctx.beginPath(); ctx.ellipse(x - s * 0.55, y + s * 0.6, s * 0.34, s * 0.26, -0.3, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + s * 0.5, y + s * 0.4, s * 0.34, s * 0.26, -0.3, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.moveTo(x - s * 0.25, y + s * 0.6); ctx.lineTo(x - s * 0.25, y - s * 0.7); ctx.lineTo(x + s * 0.8, y - s * 0.9); ctx.lineTo(x + s * 0.8, y + s * 0.4); ctx.stroke(); },
+    help(x, y, s) { text('?', x, y + 1, { font: 'bold ' + (s * 2.7) + 'px ' + SANS, color: COL.icon }); },
+    list(x, y, s) { ctx.lineWidth = s * 0.2; roundRect(x - s * 0.85, y - s * 0.75, s * 1.7, s * 1.65, s * 0.2); ctx.fill(); ctx.strokeStyle = COL.iconFill; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(x - s * 0.5, y - s * 0.2 + i * s * 0.38); ctx.lineTo(x + s * 0.5, y - s * 0.2 + i * s * 0.38); ctx.stroke(); } ctx.strokeStyle = COL.icon; ctx.lineWidth = s * 0.18; for (const dx of [-0.45, 0, 0.45]) { ctx.beginPath(); ctx.moveTo(x + dx * s, y - s * 1.0); ctx.lineTo(x + dx * s, y - s * 0.6); ctx.stroke(); } },
+    share(x, y, s) { ctx.lineWidth = s * 0.22; ctx.beginPath(); ctx.moveTo(x - s * 0.6, y - s * 0.05); ctx.lineTo(x - s * 0.6, y + s * 0.85); ctx.lineTo(x + s * 0.6, y + s * 0.85); ctx.lineTo(x + s * 0.6, y - s * 0.05); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y + s * 0.4); ctx.lineTo(x, y - s * 0.9); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - s * 0.4, y - s * 0.5); ctx.lineTo(x, y - s * 0.95); ctx.lineTo(x + s * 0.4, y - s * 0.5); ctx.stroke(); },
+    info(x, y, s) { text('i', x, y + 1, { font: 'italic bold ' + (s * 2.9) + 'px ' + SERIF, color: COL.icon }); },
+    close(x, y, s) { ctx.lineWidth = s * 0.45; ctx.beginPath(); ctx.moveTo(x - s * 0.7, y - s * 0.7); ctx.lineTo(x + s * 0.7, y + s * 0.7); ctx.moveTo(x + s * 0.7, y - s * 0.7); ctx.lineTo(x - s * 0.7, y + s * 0.7); ctx.stroke(); },
+    arrow(x, y, s) { ctx.beginPath(); ctx.moveTo(x - s * 0.8, y - s * 0.3); ctx.lineTo(x, y - s * 0.3); ctx.lineTo(x, y - s * 0.75); ctx.lineTo(x + s * 0.85, y); ctx.lineTo(x, y + s * 0.75); ctx.lineTo(x, y + s * 0.3); ctx.lineTo(x - s * 0.8, y + s * 0.3); ctx.closePath(); ctx.fill(); },
+  };
+  function circleButton(x, y, r, draw, id) {
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = COL.bg; ctx.fill(); ctx.strokeStyle = COL.iconEdge; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = COL.icon; ctx.strokeStyle = COL.icon; ctx.lineCap = 'round'; draw(x, y, r * 0.55); ctx.restore();
+    hitButtons.push({ x, y, r: r + 6, id });
+  }
+  function spawnSparkle(x, y, size) { sparkles.push({ x, y, size, t: 0, life: 0.5 + Math.random() * 0.7, rot: Math.random() * TAU }); }
+  function updateSparkles(dt) { for (let i = sparkles.length - 1; i >= 0; i--) { sparkles[i].t += dt; if (sparkles[i].t > sparkles[i].life) sparkles.splice(i, 1); } }
+  function drawSparkles() {
+    for (const s of sparkles) {
+      const k = s.t / s.life, a = Math.sin(k * Math.PI), sz = s.size * (0.5 + 0.5 * a);
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot + k * 0.5); ctx.globalAlpha = a;
+      const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, sz * 0.7); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.4, 'rgba(255,230,150,0.35)'); gr.addColorStop(1, 'rgba(255,230,150,0)');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, sz * 0.7, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath();
+      for (let i = 0; i < 4; i++) { const ang = i * Math.PI / 2; ctx.lineTo(Math.cos(ang) * sz, Math.sin(ang) * sz); ctx.lineTo(Math.cos(ang + Math.PI / 4) * sz * 0.14, Math.sin(ang + Math.PI / 4) * sz * 0.14); }
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+  }
+
+  // ---------------------------------------------------------------- バーガーの描画
+  /** placed: [{kind, dx}] を下から積んで描く。戻り値は積み上がりの上端Y */
+  function drawStack(placed, cx, baseY, w, opt) {
+    opt = opt || {};
+    const sway = opt.sway || 0, sq = opt.squash || [];
+    Art.draw(ctx, 'bunBottom', cx, baseY, w);
+    let h = Core.BUN.bottomThick * w;
+    const k = w / Core.DEFAULTS.bunW;
+    placed.forEach((p, i) => {
+      const x = cx + p.dx * k + sway * h, y = baseY - h;
+      const s = sq[i] ? 1 - 0.22 * sq[i] : 1;
+      Art.draw(ctx, p.kind, x, y, w, { scaleY: s, scaleX: 1 + (1 - s) * 0.4 });
+      if (p.kind !== 'bunTop') h += Core.KINDS[p.kind].thick * w;
+    });
+    return baseY - h;
+  }
+  function stackHeight(placed, w) { return (Core.BUN.bottomThick + placed.reduce((a, p) => a + (p.kind === 'bunTop' ? 0 : Core.KINDS[p.kind].thick), 0)) * w; }
+
+  // ---------------------------------------------------------------- プレイ
+  function startPlay() {
+    game = Core.createGame(Store.data.recipe);
+    fall = null; camShift = 0; wobble.th = 0; wobble.om = 0;
+    squash.length = 0; popups.length = 0; sparkles.length = 0;
+    scene = 'play'; sceneT = 0;
+  }
+  function onDrop() {
+    if (scene !== 'play' || !game) return;
+    if (game.drop() === null) return;
+    fall = { y: LY.hoverY, v: 0 };
+    Snd.ui();
+  }
+  function updatePlay(dt) {
+    game.update(dt);
+    const topY = LY.baseY - stackHeight(game.placed, LY.bunW);
+    const want = Math.max(0, (LY.hoverY + 78) - topY);
+    camShift += (want - camShift) * Math.min(1, dt * 6);
+    if (fall) {
+      fall.v += game.opts.gravity * dt; fall.y += fall.v * dt;
+      const landY = topY + camShift;
+      if (fall.y >= landY) {
+        const r = game.land(); fall = null;
+        squash[game.placed.length - 1] = 1;
+        wobble.om += r.dx * 0.0016 + (Math.random() - 0.5) * 0.02;
+        Snd.play('land', r.kind === 'patty' || r.kind === 'bunTop' ? 0.8 : 1.1, 0.9);
+        Native.haptic(r.perfect ? 'MEDIUM' : 'LIGHT');
+        popups.push({ x: LY.cx + r.dx, y: landY - 18, t: 0, str: r.score + '点', perfect: r.perfect });
+        if (r.perfect) { Snd.perfect(); for (let i = 0; i < 9; i++) spawnSparkle(LY.cx + r.dx + (Math.random() - 0.5) * LY.bunW * 0.9, landY - 10 + (Math.random() - 0.5) * 40, 8 + Math.random() * 12); }
+        if (r.finished) { scene = 'finish'; sceneT = 0; }
+      }
+    }
+    stepCommon(dt);
+  }
+  function stepCommon(dt) {
+    // 揺れ（減衰ばね）
+    wobble.om += (-70 * wobble.th - 5.5 * wobble.om) * dt; wobble.th += wobble.om * dt;
+    for (let i = 0; i < squash.length; i++) if (squash[i]) squash[i] = Math.max(0, squash[i] - dt * 7);
+    for (let i = popups.length - 1; i >= 0; i--) { popups[i].t += dt; if (popups[i].t > 0.9) popups.splice(i, 1); }
+    updateSparkles(dt);
+  }
+  function drawPlay() {
+    ctx.fillStyle = COL.bg; ctx.fillRect(-20, -20, L.W + 40, L.H + 40);
+    drawStack(game.placed, LY.cx, LY.baseY + camShift, LY.bunW, { sway: wobble.th, squash });
+    if (game.state === 'swing') Art.draw(ctx, game.currentKind(), LY.cx + game.offset(), LY.hoverY, LY.bunW);
+    else if (fall) Art.draw(ctx, game.currentKind(), LY.cx + game.dropX, fall.y, LY.bunW);
+    for (const p of popups) {
+      const k = p.t / 0.9;
+      text(p.str, p.x, p.y - k * 26, { font: 'bold ' + (p.perfect ? 26 : 20) + 'px ' + ROUND, color: p.perfect ? '#e8a100' : '#8a8a70', stroke: '#fff', strokeW: 5, alpha: 1 - k * k });
+    }
+    drawSparkles();
+    // 進み具合
+    const n = game.order.length, done = game.placed.length;
+    text('のこり ' + (n - done), L.W - 14, L.safeTop + 20, { font: 'bold 13px ' + SANS, color: '#b5b08a', align: 'right' });
+    hitButtons = [];
+  }
+
+  // ---------------------------------------------------------------- 結果
+  function finishGame() {
+    const total = game.total;
+    Store.data.made = (Store.data.made || 0) + 1;
+    const isHigh = total > (Store.data.high || 0);
+    if (isHigh) Store.data.high = total;
+    const rank = Core.insertRanking(Store.data.ranking, { score: total, kcal: game.calories(), date: Date.now() }, 10);
+    Store.save();
+    result = { total, rows: game.resultRows(), kcal: game.calories(), isHigh, rank, placed: game.placed.slice() };
+    scene = 'result'; sceneT = 0; sparkles.length = 0; popups.length = 0;
+    Snd.fanfare(total >= 700);
+  }
+  function drawResult(dt) {
+    sunburst(LY.cx, L.safeTop + 130, '#fdfde2', '#f4f4c4', 36, clock * 0.1);
+    // バーガー（全体が入る大きさに）
+    const areaH = 205, top = L.safeTop + 22;
+    let w = 140; const hh = () => stackHeight(result.placed, w) + 0.43 * w;
+    if (hh() > areaH) w *= areaH / hh();
+    const baseY = top + areaH - 0.03 * w;
+    drawStack(result.placed, LY.cx, baseY, w, { sway: wobble.th });
+    if (Math.random() < dt * 16) spawnSparkle(LY.cx + (Math.random() - 0.5) * w * 1.3, baseY - Math.random() * hh(), 6 + Math.random() * 13);
+    drawSparkles();
+    // 表
+    const px = LY.cx - 144, py = top + areaH + 24, pw = 288, ph = Math.min(236, L.H - py - L.safeBottom - 30);
+    ctx.save(); roundRect(px, py, pw, ph, 6); ctx.fillStyle = 'rgba(255,255,255,0.42)'; ctx.fill(); ctx.restore();
+    const f = 'bold 13px ' + SANS, lh = 15.6, x0 = px + 10, y0 = py + 4;
+    result.rows.forEach((r, i) => {
+      const y = y0 + i * lh;
+      text(r.label, x0, y, { font: f, align: 'left', baseline: 'top' });
+      text(':', x0 + 86, y, { font: f, align: 'left', baseline: 'top' });
+      text(r.score + '点', x0 + 132, y, { font: f, align: 'right', baseline: 'top' });
+    });
+    const rx = x0 + 148;
+    const right = [['合計', result.total + '点', 0], ['最高記録', Store.data.high + '点', 1], ['カロリー', result.kcal + 'kcal', 3], ['作った数', '累計' + Store.data.made + '個', 5]];
+    for (const [a, b, row] of right) {
+      const y = y0 + row * lh;
+      text(a, rx, y, { font: f, align: 'left', baseline: 'top' });
+      text(':', rx + 60, y, { font: f, align: 'left', baseline: 'top' });
+      text(b, rx + 70, y, { font: f, align: 'left', baseline: 'top' });
+    }
+    if (result.isHigh) text('新記録！', rx + 70, y0 + 2 * lh, { font: 'bold 13px ' + SANS, color: '#e08a00', align: 'left', baseline: 'top' });
+    text('下のバンズが基準です。', x0, y0 + 10.5 * lh, { font: f, align: 'left', baseline: 'top' });
+    hitButtons = [];
+    const bx = rx + 66, by = y0 + 8.4 * lh;
+    iconButton(bx, by, 40, ICON.share, 'share');
+    text('結果をシェア！', bx, by + 31, { font: 'bold 10px ' + SANS, color: '#9c9a80' });
+    menuText('終了', bx, by + 70, 30);
+    hitButtons.push({ x: bx, y: by + 70, w: 110, h: 44, id: 'end' });
+    menuText('もう一度', px + 70, by + 70, 22);
+    hitButtons.push({ x: px + 70, y: by + 70, w: 124, h: 44, id: 'retry' });
+  }
+
+  // ---------------------------------------------------------------- タイトルほか
+  function previewPlaced(recipe) { return recipe.slice().reverse().map(k => ({ kind: k, dx: 0 })).concat([{ kind: 'bunTop', dx: 0 }]); }
+  function drawTopIcons() {
+    const y = L.safeTop + 40, xs = [-124, -62, 0, 62, 124].map(d => LY.cx + d);
+    iconButton(xs[0], y, 44, ICON.note, 'sound');
+    text(Snd.enabled ? 'ON' : 'OFF', xs[0], y + 35, { font: 'bold 11px ' + SANS, color: '#a5a58f' });
+    iconButton(xs[1], y, 44, ICON.help, 'help');
+    iconButton(xs[2], y, 44, ICON.list, 'custom');
+    iconButton(xs[3], y, 44, ICON.share, 'shareapp');
+    iconButton(xs[4], y, 44, ICON.info, 'about');
+  }
+  function drawTitle() {
+    const split = L.safeTop + 284;
+    ctx.fillStyle = COL.bg; ctx.fillRect(-20, -20, L.W + 40, L.H + 40);
+    ctx.fillStyle = COL.panel; ctx.fillRect(-20, split, L.W + 40, L.H);
+    hitButtons = [];
+    // うっすらバーガー
+    const placed = previewPlaced(Store.data.recipe);
+    let w = 142; const h = stackHeight(placed, w) + 0.43 * w; if (h > 178) w *= 178 / h;
+    drawStack(placed, LY.cx, L.safeTop + 246, w);
+    ctx.fillStyle = 'rgba(255,255,240,0.62)'; ctx.fillRect(-20, L.safeTop + 62, L.W + 40, split - L.safeTop - 62); // うっすら見せる
+    drawTopIcons();
+    text('バーガー職人', LY.cx, L.safeTop + 166, { font: '47px ' + SERIF, color: '#111' });
+    text('ハイスコア  ' + (Store.data.high || 0) + '点', LY.cx, L.safeTop + 254, { font: 'bold 12px ' + SANS, color: '#777' });
+    text('作った数  ' + (Store.data.made || 0) + '個', LY.cx, L.safeTop + 270, { font: 'bold 12px ' + SANS, color: '#777' });
+    const avail = L.H - split - L.safeBottom, ys = [0.2, 0.43, 0.66].map(k => split + avail * k + 4);
+    [['スタート', 'start'], ['ランキング', 'ranking'], ['カスタマイズ', 'custom']].forEach(([s, id], i) => {
+      menuText(s, LY.cx, ys[i], 35); hitButtons.push({ x: LY.cx, y: ys[i], w: 250, h: 54, id });
+    });
+  }
+  function drawPage(title, lines, extra) {
+    ctx.fillStyle = COL.bg; ctx.fillRect(-20, -20, L.W + 40, L.H + 40);
+    hitButtons = [];
+    circleButton(LY.cx - 118, L.safeTop + 47, 24, ICON.close, 'back');
+    text(title, LY.cx, L.safeTop + 48, { font: 'bold 22px ' + ROUND, color: '#8c8860' });
+    lines.forEach((s, i) => text(s, LY.cx, L.safeTop + 112 + i * 23, { font: '14px ' + SANS, color: '#666' }));
+    if (extra) extra();
+  }
+  function drawHelp() {
+    drawPage('あそびかた', [
+      'ハンバーガーを作るゲームです。', '',
+      '1. タイミングよく画面をタップして', '　 具を落とします。',
+      '2. 最後にパンを落として完成です。', '',
+      'いかにきれいなハンバーガーを', '作ることができるかを競います。',
+      '（下のバンズが基準です）', '',
+      'はさむ具は「カスタマイズ」で', '自由に変えられます。',
+    ], () => { const w = 120; drawStack(previewPlaced(Store.data.recipe), LY.cx, L.H - L.safeBottom - 28, w); });
+  }
+  function drawAbout() {
+    drawPage('このアプリについて', [
+      'バーガー職人  ver ' + BUILD, '',
+      '絵はすべてこのアプリのために', '描き起こしたものです。', '',
+      '効果音: "Pop effect sounds"', 'by trezegames (OpenGameArt, CC0)', '',
+      'データの収集・送信は行いません。', '記録は端末内にのみ保存されます。',
+    ]);
+  }
+  function drawRanking() {
+    drawPage('ランキング', [], () => {
+      const list = Store.data.ranking, y0 = L.safeTop + 104, lh = Math.min(36, (L.H - y0 - 40) / 10);
+      for (let i = 0; i < 10; i++) {
+        const y = y0 + i * lh, e = list[i];
+        const col = i === 0 ? '#d0a010' : i === 1 ? '#9a9a9a' : i === 2 ? '#b07040' : '#9c9a80';
+        text((i + 1) + '.', LY.cx - 96, y, { font: 'bold 17px ' + SANS, color: col, align: 'right' });
+        if (e) {
+          text(e.score + '点', LY.cx - 20, y, { font: 'bold 19px ' + SANS, color: '#666', align: 'right' });
+          const d = new Date(e.date);
+          text((d.getMonth() + 1) + '/' + d.getDate() + '  ' + e.kcal + 'kcal', LY.cx + 110, y, { font: '12px ' + SANS, color: '#999', align: 'right' });
+        } else text('- - -', LY.cx, y, { font: '13px ' + SANS, color: '#ccc' });
+      }
+    });
+  }
+  function drawCustom() {
+    ctx.fillStyle = COL.bg; ctx.fillRect(-20, -20, L.W + 40, L.H + 40);
+    hitButtons = [];
+    circleButton(LY.cx - 118, L.safeTop + 47, 24, ICON.close, 'back');
+    const top = L.safeTop + 74, bottom = L.H - L.safeBottom - 62, n = Core.SLOTS;
+    const gap = (bottom - top) / (n + 1), w = Math.min(138, gap * 3.2), x = LY.cx;
+    Art.draw(ctx, 'bunBottom', x, bottom + 0.19 * w, w);
+    for (let i = n - 1; i >= 0; i--) { // 下から描く（i=0 がいちばん上）
+      const y = top + (i + 1) * gap, kind = Store.data.recipe[i];
+      Art.draw(ctx, kind, x, y + 0.06 * w, w);
+    }
+    Art.draw(ctx, 'bunTop', x, top + 0.1 * w, w);
+    for (let i = 0; i < n; i++) {
+      const y = top + (i + 1) * gap;
+      circleButton(x + 112, y, Math.min(17, gap * 0.42), ICON.arrow, 'slot' + i);
+      hitButtons.push({ x, y, w: w * 1.1, h: gap * 0.9, id: 'slot' + i });
+    }
+    text(Core.calories(Store.data.recipe) + ' kcal', LY.cx - 118, L.H - L.safeBottom - 22, { font: 'bold 13px ' + SANS, color: '#a5a58f', align: 'left' });
+    text('矢印で具を変更', LY.cx + 130, L.H - L.safeBottom - 22, { font: '12px ' + SANS, color: '#a5a58f', align: 'right' });
+  }
+
+  // ---------------------------------------------------------------- シェア画面（ブラウザ用）
+  const shareDlg = document.getElementById('share-dialog'), shareText = document.getElementById('share-text');
+  const shareX = document.getElementById('share-x'), shareCopy = document.getElementById('share-copy');
+  function openShareDialog(t) { shareText.value = t; shareX.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(t); shareCopy.textContent = 'コピー'; shareDlg.hidden = false; }
+  document.getElementById('share-close').addEventListener('click', () => { shareDlg.hidden = true; });
+  shareCopy.addEventListener('click', async () => {
+    try { if (navigator.clipboard) await navigator.clipboard.writeText(shareText.value); else { shareText.select(); document.execCommand('copy'); } shareCopy.textContent = 'コピーしました'; }
+    catch (e) { shareText.select(); shareCopy.textContent = '選択して手動でコピーしてください'; }
+  });
+
+  // ---------------------------------------------------------------- 入力
+  function toLogical(e) { return { x: (e.clientX - L.offX) / L.scale, y: e.clientY / L.scale }; }
+  function hitTest(p) {
+    for (let i = hitButtons.length - 1; i >= 0; i--) {
+      const b = hitButtons[i];
+      if (b.r !== undefined ? Math.hypot(p.x - b.x, p.y - b.y) <= b.r : (Math.abs(p.x - b.x) <= b.w / 2 && Math.abs(p.y - b.y) <= b.h / 2)) return b.id;
+    }
+    return null;
+  }
+  function act(id) {
+    if (!id) return;
+    Snd.ui();
+    if (id === 'start' || id === 'retry') return startPlay();
+    if (id === 'end' || id === 'back') { scene = 'title'; sceneT = 0; return; }
+    if (id === 'help' || id === 'about' || id === 'ranking' || id === 'custom') { scene = id; sceneT = 0; return; }
+    if (id === 'sound') { Snd.enabled = !Snd.enabled; Store.data.sound = Snd.enabled; Store.save(); if (Snd.enabled) Snd.ui(); return; }
+    if (id.startsWith('slot')) {
+      const i = Number(id.slice(4)), F = Core.FILLINGS;
+      Store.data.recipe[i] = F[(F.indexOf(Store.data.recipe[i]) + 1) % F.length]; Store.save();
+      Snd.play('land', 1.2, 0.7);
+    }
+  }
+  function onDown(p) {
+    Snd.unlock();
+    if (scene === 'play') return onDrop();
+    if (scene === 'finish') return;
+    const id = hitTest(p);
+    if (id === 'share' || id === 'shareapp') { pendingShare = id; return; } // 共有は指を離したときに実行
+    act(id);
+  }
+  function onUp(p) {
+    if (!pendingShare) return;
+    const id = pendingShare; pendingShare = null;
+    if (hitTest(p) !== id) return;
+    Snd.ui();
+    if (id === 'share') Native.share('バーガー職人で ' + result.total + '点 のハンバーガーを作ったよ！（' + result.kcal + 'kcal） #バーガー職人');
+    else Native.share('タイミングよく具を落としてハンバーガーを作る「バーガー職人」であそんでるよ #バーガー職人');
+  }
+  canvas.addEventListener('pointerdown', e => { e.preventDefault(); onDown(toLogical(e)); }, { passive: false });
+  canvas.addEventListener('pointerup', e => { e.preventDefault(); onUp(toLogical(e)); }, { passive: false });
+  canvas.addEventListener('pointercancel', () => { pendingShare = null; });
+  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+  canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('keydown', e => {
+    if (!shareDlg.hidden || e.repeat) return;
+    if (e.key === ' ' || e.key === 'Enter') {
+      Snd.unlock();
+      if (scene === 'play') onDrop(); else if (scene === 'title' || scene === 'result') startPlay();
+    } else if (e.key === 'Escape' && scene !== 'play' && scene !== 'finish') { scene = 'title'; }
+  });
+  window.addEventListener('resize', layout);
+  window.addEventListener('orientationchange', () => setTimeout(layout, 100));
+
+  // ---------------------------------------------------------------- メインループ
+  function frame(now) {
+    let dt = lastNow ? (now - lastNow) / 1000 : 0; lastNow = now;
+    if (dt > 0.05) dt = 0.05;
+    sceneT += dt; clock += dt;
+    ctx.setTransform(L.scale * L.dpr, 0, 0, L.scale * L.dpr, L.offX * L.dpr, 0);
+    ctx.fillStyle = COL.bg; ctx.fillRect(-L.offX / L.scale - 5, -5, L.W + 2 * L.offX / L.scale + 10, L.H + 10);
+    if (scene === 'title') drawTitle();
+    else if (scene === 'help') drawHelp();
+    else if (scene === 'about') drawAbout();
+    else if (scene === 'ranking') drawRanking();
+    else if (scene === 'custom') drawCustom();
+    else if (scene === 'play') { updatePlay(dt); drawPlay(); }
+    else if (scene === 'finish') { stepCommon(dt); drawPlay(); if (sceneT > 1.1) finishGame(); }
+    else if (scene === 'result') { stepCommon(dt); drawResult(dt); }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  window.__burger = { get game() { return game; }, Snd, Store, startPlay, onDrop, finishGame, step: () => frame(performance.now()), get scene() { return scene; }, set scene(v) { scene = v; } };
+})();
+</script>
+</body>
+</html>
