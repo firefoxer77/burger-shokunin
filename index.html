@@ -100,9 +100,9 @@ window.MOMO_SOUNDS = {
     baseOmega: 1.7,     // 最初の具の角速度 rad/s
     omegaStep: 1.528,   // 1個ごとの加速（最後のバンズで約 22.4 rad/s）
     bunBoost: 1.45,     // 最後のバンズはさらに速い
-    zeroAt: 0.48,       // ずれがバンズ幅のこの割合で 0 点（= 振れ幅の端 120px。端以外は必ず点が入る）
-    curve: 0.875,       // 点数の下がり方（1=直線、大きいほど中心付近が厳しい、小さいほど甘い）
-    perfect: 95,        // この点数以上で「ぴったり」（curve 0.875 で中心から約±7px）
+    // 採点：中心からのずれ(px) → 点数 の折れ線。間は直線でつなぐ。最後の点が 0 点になるずれ
+    scorePoints: [[0, 100], [27, 80], [53, 35], [120, 0]],
+    perfect: 95,        // この点数以上で「ぴったり」（中心から約±7px）
     gravity: 2600,      // 落下加速度 px/s^2
   };
 
@@ -117,9 +117,12 @@ window.MOMO_SOUNDS = {
 
   function scoreFor(dx, opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
-    const r = Math.min(1, Math.abs(dx) / (o.zeroAt * o.bunW));
-    if (r > 0.995) return 0;                       // 0点は振れ幅の端だけ
-    const s = 100 * Math.pow(1 - r, o.curve);
+    const pts = o.scorePoints, d = Math.abs(dx), end = pts[pts.length - 1][0];
+    if (d > end * 0.995) return 0;                   // 0点は振れ幅の端だけ
+    let s = 0;
+    for (let i = 1; i < pts.length; i++) {
+      if (d <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; s = y0 + (y1 - y0) * (d - x0) / (x1 - x0); break; }
+    }
     return Math.max(1, Math.min(100, Math.round(s))); // 端以外は最低1点
   }
 
